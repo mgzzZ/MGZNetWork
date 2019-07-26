@@ -7,7 +7,6 @@
 //
 
 #import "MGZViewController.h"
-
 @interface MGZViewController ()
 
 @end

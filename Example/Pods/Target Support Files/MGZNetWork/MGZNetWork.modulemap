@@ -1,0 +1,6 @@
+framework module MGZNetWork {
+  umbrella header "MGZNetWork-umbrella.h"
+
+  export *
+  module * { export * }
+}
