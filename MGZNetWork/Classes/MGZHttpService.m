@@ -10,6 +10,10 @@
 #import <AFNetworking/AFNetworking.h>
 #import "MGZHttpResponse.h"
 #import "EncodeControl.h"
+
+#import <WYNetworkManager/WYNetworkCache.h>
+
+
 NSString * const MGZHttpErrorDomain = @"请检查参数";
 NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
 
@@ -126,13 +130,19 @@ NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
                 NSLog(@"*******data : %@",response.responseObject);
                 [subscriber sendNext:response.responseObject];
                 [subscriber sendCompleted];
-            }else if([dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] containsString:@"oken失效"]) {
+            }else if(code.intValue == -1 || [dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] containsString:@"oken失效"]) {
               
                 NSError *error = [NSError errorWithDomain:dic[@"msg"] code:MGZHttpResponseCodeMissToken userInfo:nil];
+                if (self.config.catchError) {
+                    self.config.catchError(error);
+                }
                 [subscriber sendError:error];
                 
             }else{
                 NSError *error = [NSError errorWithDomain:dic[@"msg"] code:MGZHttpResponseCodeOther userInfo:nil];
+                if (self.config.catchError) {
+                    self.config.catchError(error);
+                }
                 [subscriber sendError:error];
             }
             
@@ -170,6 +180,9 @@ NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
             
         } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
             //            NSLog(@"报错了%@",error);
+            if (self.config.catchError) {
+                self.config.catchError(error);
+            }
             [subscriber sendError:error];
         }];
         
@@ -182,15 +195,22 @@ NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
     return [signal replayLazily];  //多次订阅同样的信号，执行一次。
 }
 
+- (RACSignal *)postRequestEncryptionNetWorkData:(MGZHttpRequest *)request {
+    return [self postRequestEncryptionNetWorkData:request isCache:NO];
+}
 
-- (RACSignal *)postRequestEncryptionNetWorkData:(MGZHttpRequest *)request{
+- (RACSignal *)postRequestEncryptionNetWorkData:(MGZHttpRequest *)request isCache:(BOOL)isCache{
     if (!request) {
-        return  [RACSignal  error:[NSError errorWithDomain:MGZHttpErrorDomain code:-1 userInfo:nil]];
+        return  [RACSignal error:[NSError errorWithDomain:MGZHttpErrorDomain code:-1 userInfo:nil]];
     }
     
     RACSignal * signal = [RACSignal createSignal:^RACDisposable * _Nullable(id<RACSubscriber>  _Nonnull subscriber) {
-        
-        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            /// 读缓存的数据
+            if (isCache && [WYNetworkCache httpCacheForURL:request.path parameters:request.params]) {
+                [subscriber sendNext:[WYNetworkCache httpCacheForURL:request.path parameters:request.params]];
+            }
+        });
         NSMutableURLRequest *netrequest = [[AFJSONRequestSerializer serializer] requestWithMethod:@"POST" URLString:request.path parameters:nil error:nil];
         
         [netrequest addValue:@"application/json"forHTTPHeaderField:@"Content-Type"];
@@ -207,27 +227,36 @@ NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
         } completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
             
             if(error){
-                MGZHttpResponse *response = [[MGZHttpResponse alloc]initWithResponseError:error code:MGZHttpResponseCodeOther];
-                
-                [subscriber sendError:response.resError];
-                
+                if (![WYNetworkCache httpCacheForURL:request.path parameters:request.params]) {
+                    MGZHttpResponse *response = [[MGZHttpResponse alloc] initWithResponseError:error code:MGZHttpResponseCodeOther];
+                    if (self.config.catchError) {
+                        self.config.catchError(error);
+                    }
+                    [subscriber sendError:response.resError];
+                }
             } else {
-                MGZHttpResponse *response = [[MGZHttpResponse alloc]initWithResponseEncryption:responseObject code:MGZHttpResponseCodeSuccess resultClass:request.resultClass];
+                MGZHttpResponse *response = [[MGZHttpResponse alloc] initWithResponseEncryption:responseObject code:MGZHttpResponseCodeSuccess resultClass:request.resultClass];
                 if (response.isSuccess) {
                     if (request.resultClass) {
                         [subscriber sendNext:response.jsonClassObject];
                         [subscriber sendCompleted];
+                        /// 记录缓存数据
+                        isCache ? [WYNetworkCache setHttpCache:response.jsonClassObject URL:request.path parameters:request.params] : nil;
                     }else{
                         [subscriber sendNext:response.responseObject];
                         [subscriber sendCompleted];
+                        /// 记录缓存数据
+                        isCache ? [WYNetworkCache setHttpCache:response.responseObject URL:request.path parameters:request.params] : nil;
                     }
                 }else{
+                    if (self.config.catchError) {
+                        self.config.catchError(error);
+                    }
                     [subscriber sendError:response.resError];
                 }
             }
         }];
         [task resume];
-        
         
         return [RACDisposable disposableWithBlock:^{
             [task cancel];
@@ -236,6 +265,9 @@ NSString * const MGZHttpErrorMessage = @"MGZHTTPErroMassage";
     
     return [signal replayLazily];
 }
+
+
+
 
 
 #pragma mark - Lazily

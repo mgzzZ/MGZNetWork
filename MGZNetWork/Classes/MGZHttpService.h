@@ -52,6 +52,19 @@ NS_ASSUME_NONNULL_BEGIN
  */
 -(RACSignal *)postRequestEncryptionNetWorkData:(MGZHttpRequest *)request;
 
+
+/**
+ POST加密请求
+
+ @param request request
+ @param isCache 是否缓存数据
+ @return 信号量
+ */
+- (RACSignal *)postRequestEncryptionNetWorkData:(MGZHttpRequest *)request isCache:(BOOL)isCache;
+
+
+- (RACSignal *)downloadFileWithUrl:(NSURL *)url;
+
 @end
 
 NS_ASSUME_NONNULL_END

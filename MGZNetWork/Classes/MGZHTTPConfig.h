@@ -26,6 +26,9 @@ typedef NS_ENUM(NSInteger,MGZHTTPdevEnvironmentType){
     MGZHTTPdevEnvironmentOfRelease = 2//正式服务器
 };
 
+
+typedef void(^CatchError)(NSError* error);
+
 @interface MGZHTTPConfig : NSObject
 
 
@@ -72,6 +75,7 @@ typedef NS_ENUM(NSInteger,MGZHTTPdevEnvironmentType){
 @property (nonatomic,strong)NSString *encryptionKey;
 
 
+@property (nonatomic,copy)CatchError catchError;
 
 @end
 

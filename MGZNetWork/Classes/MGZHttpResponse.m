@@ -139,7 +139,7 @@
             self.isSuccess = NO;
         }else{
             //token失效
-            if ([dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] containsString:@"oken失效"]) {
+            if ([dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] isEqualToString:@"Token失效"] || [dic[@"msg"] containsString:@"oken失效"]||code.intValue == -1) {
                
                 
                 NSError *error = [NSError errorWithDomain:dic[@"msg"] code:MGZHttpResponseCodeMissToken userInfo:nil];

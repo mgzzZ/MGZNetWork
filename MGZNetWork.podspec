@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'MGZNetWork'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'A short description of MGZNetWork.'
 
 # This description is used to generate tags and improve search results.
@@ -28,7 +28,7 @@ TODO: Add long description of the pod here.
   s.source           = { :git => 'https://github.com/mgzzz/MGZNetWork.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '9.0'
 
   s.source_files = 'MGZNetWork/Classes/**/*'
   
@@ -41,4 +41,6 @@ TODO: Add long description of the pod here.
   s.dependency 'AFNetworking', '~> 3.0'
   s.dependency 'ReactiveObjC'
   s.dependency 'MJExtension'
+  s.dependency 'WYNetworkManager'
+  
   end
